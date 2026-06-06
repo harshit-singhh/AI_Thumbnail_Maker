@@ -1,0 +1,23 @@
+# Virtual Environments (Never push these!)
+thumbnail_env/
+ai_env/
+analytics_project/env/
+ENV/
+env/
+venv/
+
+# Local SQLite Database Files
+*.db
+*.sqlite3
+
+# Environment Secret Keys (Crucial for security!)
+.env
+
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Operating System Files
+.DS_Store
+Thumbs.db
