@@ -87,3 +87,33 @@ async def process_job(job_id : str):
     # start one worker for each thumbnail
     # wait for all workers to finish
     # mark job as completed/failed
+
+    with Session(engine) as session:
+        job = session.get(Job , job_id)
+        job.status = "processing"
+        prompt = job.prompt
+        headshot_url = job.headshot_url
+        session.add(job)
+        session.commit()
+
+        thumbnails = session.exec(
+             select(Thumbnail).where(Thumbnail.job_id == job_id)
+        ).all()
+         
+        thumbnails_ids = [t.id for t in thumbnails]
+    # THE SESSION IS CLOSED HERE. The DB line is free!
+    tasks = [
+        generate_single_thumbnail(tid , headshot_url , prompt)
+        for tid in thumbnails_ids
+    ]
+    # Now 50 users can wait here for 20 seconds completely safely!
+    await asyncio.gather(*tasks , return_exceptions = True)
+
+    # SESSION 2: Open a fresh connection at the end to save final results
+    with Session(engine) as session:
+        thumbnails = session.exec(
+            select(Thumbnail).where(Thumbnail.job_id == job_id)
+        ).all() 
+        all_failed = all(t.status == "error" for t in thumbnails)
+        job = session.get(Job , job_id)
+        job.status = "error" if all_failed else "completed"
